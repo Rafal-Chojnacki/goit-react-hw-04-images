@@ -1,35 +1,35 @@
-import React, { Component } from 'react';
-import css from './modal.module.css';
+import {useEffect, useRef } from "react"
+import css from "./modal.module.css"
 
-class Modal extends Component {
-  componentDidMount() {
-    document.addEventListener('mousedown', this.handleClickOutside);
-  }
+const Modal = ({ image, onClose }) => {
+  const modalRef = useRef(null);
 
-  componentWillUnmount() {
-    document.removeEventListener('mousedown', this.handleClickOutside);
-  }
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef && !modalRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
 
-  handleClickOutside = event => {
-    if (this.modalRef && !this.modalRef.contains(event.target)) {
-      this.props.onClose();
-    }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
 
-  render() {
-    return (
-      <div>
-        <div className={css.overlay} onClick={this.props.onClose} />
-        <div ref={ref => (this.modalRef = ref)} className={css.modal}>
-          <img
-            className={css.image}
-            src={this.props.image.largeImageURL}
-            alt={this.props.image.tags}
-          />
-        </div>
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
+  return (
+    <div>
+      <div className={css.overlay} onClick={onClose} />
+      <div ref={modalRef} className={css.modal}>
+        <img
+          className={css.image}
+          src={image.largeImageURL}
+          alt={image.tags}
+        />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default Modal;

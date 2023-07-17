@@ -1,94 +1,88 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import SearchBar from './searchBar';
-import ImageGallery from './ImageGallery';
-import { Component } from 'react';
-import Modal from './modal';
-import Button from './button';
 import { ColorRing } from 'react-loader-spinner';
 import Notiflix from 'notiflix';
+import SearchBar from './searchBar';
+import ImageGallery from './ImageGallery';
+import Modal from './modal';
+import Button from './button';
 
-class App extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      searchTerm: '',
-      images: [],
-      selectedImage: null,
-      currentPage: 1,
-      isLoading: false,
-      totalHits: 0,
-    };
-  }
+const App = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [images, setImages] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading] = useState(false);
+  const [totalHits, setTotalHits] = useState(0);
 
-  handleImages = (searchTerm, newImages, totalHits) => {
-    this.setState({
-      searchTerm,
-      images: newImages,
-      totalHits,
-    });
+ 
+  const handleImages = (searchTerm, newImages, totalHits) => {
+    setSearchTerm(searchTerm);
+    setImages(newImages);
+    setTotalHits(totalHits);
   };
 
-  setImages = images => {
-    this.setState(prevState => ({
-      ...prevState,
-      images: [...prevState.images, ...images],
-    }));
+  
+  const openModal = (image) => {
+    setSelectedImage(image);
   };
 
-  openModal = image => {
-    this.setState({ selectedImage: image });
+
+  const closeModal = () => {
+    setSelectedImage(null);
   };
 
-  closeModal = () => {
-    this.setState({ selectedImage: null });
-  };
-
-  loadMoreImages = async () => {
-    const { searchTerm, currentPage } = this.state;
+  const loadMoreImages = async () => {
     const apiKey = '31641463-8cc19d34af378b8aeb6cde8f1';
     const nextPage = currentPage + 1;
-    const response = await axios.get(
-      `https://pixabay.com/api/?q=${searchTerm}&page=${nextPage}&key=${apiKey}&image_type=photo&orientation=horizontal&per_page=12`
-    );
-    const newImages = response.data.hits;
-    this.setState(prevState => ({
-      images: [...prevState.images, ...newImages],
-      currentPage: nextPage,
-    }));
-  
-  }
-  render() {
-    if (this.state.images.length === this.state.totalHits) {
-      Notiflix.Notify.warning('There are not more images which You search or You have reached the limit')
+
+    try {
+      const response = await axios.get(
+        `https://pixabay.com/api/?q=${searchTerm}&page=${nextPage}&key=${apiKey}&image_type=photo&orientation=horizontal&per_page=12`
+      );
+      const newImages = response.data.hits;
+
+      setImages((prevImages) => [...prevImages, ...newImages]);
+      setCurrentPage(nextPage);
+    } catch (error) {
+      console.error('Failed to load more images:', error);
+      // Handle error, show error message, etc.
+    }
   };
-    console.log(`The number of images is ${this.state.images.length}`)
-  console.log(`the total hits number is ${this.state.totalHits}`)
-    const { isLoading, images, selectedImage } = this.state;
-    return (
-      <div>
-        <SearchBar handleImages={this.handleImages} />
-        {isLoading ? (
-          <ColorRing />
-        ) : (
-          <ImageGallery
-            key={this.state.searchTerm}
-            images={images}
-            searchTerm={this.state.searchTerm}
-            openModal={this.openModal}
-          />
-        )}
-        {selectedImage && (
-          <Modal image={selectedImage} onClose={this.closeModal} />
-        )}
-        {this.state.images.length === 0 || this.state.images.length >= this.state.totalHits ? (
-          <Button isInvisible={true} onClick={this.loadMoreImages} />
-        ) : (
-          <Button onClick={this.loadMoreImages} />
-        )}
-      </div>
-    );
-  }
-}
+
+  useEffect(() => {
+    if (images.length === totalHits) {
+      Notiflix.Notify.warning(
+        'There are no more images that match your search or you have reached the limit.'
+      );
+    }
+    console.log(`The number of images is ${images.length}`);
+    console.log(`The total hits number is ${totalHits}`);
+  }, [images.length, totalHits]);
+
+  return (
+    <div>
+      <SearchBar handleImages={handleImages} />
+      {isLoading ? (
+        <ColorRing />
+      ) : (
+        <ImageGallery
+          key={searchTerm}
+          images={images}
+          searchTerm={searchTerm}
+          openModal={openModal}
+        />
+      )}
+
+      {selectedImage && <Modal image={selectedImage} onClose={closeModal} />}
+
+      {images.length === 0 || images.length >= totalHits ? (
+        <Button isInvisible={true} onClick={loadMoreImages} />
+      ) : (
+        <Button onClick={loadMoreImages} />
+      )}
+    </div>
+  );
+};
 
 export default App;
